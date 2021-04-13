@@ -36,9 +36,9 @@ import covid19data
 
 #Setting directory of database(data.db)
 if platform.system() == 'Windows':
-    directory = 'data\\'
+    directory = '.\\data\\'
 else:
-    directory = 'data/'
+    directory = './data/'
 
 
 #Setting locale for seperating of digits of a number using (,)
@@ -63,7 +63,7 @@ global_df.index.name = None
 
 #Creating Master Tk window and defining associated functions
 def quit_me():
-    print('quit')
+    #print('quit')
     window.quit()
     window.destroy()
 
@@ -189,8 +189,18 @@ state_lbl.grid(row=2, column=0, pady=pady, sticky='w')
 #in state_cbx
 def state_opt(event):
     state = state_cbx.get()
+    country = country_cbx.get()
 
-    if state == '(Aggregate)':
+    if state == '(Aggregate)' and country == 'India':
+        plot_cbx['values'] = ['Confirmed (Aggregate)',
+                              'Deceased (Aggregate)',
+                              'Confirmed, Deceased (Aggregate)',
+                              'Confirmed (Daily)',
+                              'Deceased (Daily)',
+                              'Recovered(Daily)',
+                              'Confirmed, Recovered, Deceased (Daily)']
+        plot_cbx.current(0)
+    elif state == '(Aggregate)':
         plot_cbx['values'] = ['Confirmed (Aggregate)',
                               'Deceased (Aggregate)',
                               'Confirmed, Deceased (Aggregate)']
@@ -363,19 +373,25 @@ def button_press():
     if ((country != 'India') or
         (country == 'India' and state == '(Aggregate)')):
 
-        #Creating df for line plot
+        #Creating df for line plot(Aggregate)
         df = global_df[global_df['country']==country].copy()
         df.rename(columns={'total_cases':'confirmed', 'total_deaths':'deceased'},
                   inplace=True)
 
+        #Creating df for line plot(Daily)
+        df2 = in_daily_df[in_daily_df['state']=='Total'].copy()
+
         #Creating df for bar plot
-        date_max = global_df['date'].max().strftime('%Y-%m-%d')
+        #date_max = global_df['date'].max().strftime('%Y-%m-%d')
+        date_max = global_df['date'].nlargest(2).iloc[-1].strftime('%Y-%m-%d')
         bar_df = global_df[global_df['date']==date_max].copy()
-        bar_df = bar_df.sort_values(by='total_cases', ascending=False).head(6)
+        bar_df = bar_df[bar_df['continent'] != 'Global']
+        #print(bar_df)
+        bar_df = bar_df.sort_values(by='total_cases', ascending=False).head(5)
         bar_df.rename(columns={'total_cases':'confirmed',
                                'total_deaths':'deceased'},inplace=True)
         bar_df.reset_index(drop=True, inplace=True)
-        bar_df.drop(index=0, inplace=True)
+        #bar_df.drop(index=0, inplace=True)
         bar_loc = bar_df['country'].values
         bar_val = bar_df['confirmed'].values
         bar_anim_val = []
@@ -413,6 +429,18 @@ def button_press():
         elif plot == 'Confirmed, Deceased (Aggregate)':
             df = df[['date', 'confirmed', 'deceased']]
             line_colors = ['b']
+        elif plot == 'Confirmed (Daily)':
+            df = df2[['date', 'confirmed']]
+            line_colors = ['b']
+        elif plot == 'Deceased (Daily)':
+            df = df2[['date', 'deceased']]
+            line_colors = ['r']
+        elif plot == 'Recovered(Daily)':
+            df = df2[['date', 'recovered']]
+            line_colors = ['#0bdb00']
+        elif plot == 'Confirmed, Recovered, Deceased (Daily)':
+            df = df2[['date', 'confirmed', 'recovered', 'deceased']]
+            line_colors = ['b','#0bdb00']
 
     elif country == 'India' and state != '(Aggregate)':
 
@@ -470,12 +498,15 @@ def button_press():
         line, = ax1.plot(df[x_axis], df[y], color,
                          label=y.replace('_',' '))
 
+    ax1.tick_params(axis='y', labelsize=9)
+    
     #Creating twin axis plot
     if len(df.columns) > 2:
         ax11 = ax1.twinx()
         ax11.plot(df[x_axis], df[y_axis[-1]], 'r', label='deceased')
         ax11.set_ylabel(y_axis[-1].replace('_', ' ').title())
         ax11.ticklabel_format(axis='y', style='plain')
+        ax11.tick_params(axis='y', labelsize=9)
 
     #Storing all line objects in single list
     lines = ax1.lines + ax11.lines if len(df.columns) > 2 else ax1.lines
@@ -517,7 +548,7 @@ def button_press():
         ax11.set_ylim(top=top_ylim)
 
     #Formatting x axis tick labels (Date type)
-    date_form = DateFormatter("%b")
+    date_form = DateFormatter("%b, %y")
     ax1.xaxis.set_major_formatter(date_form)
 
 
@@ -591,6 +622,7 @@ def button_press():
     pos_ax_bar.y0 = 0.15
     ax_bar.set_position(pos_ax_bar)
     ax_bar.ticklabel_format(axis='y', style='plain')
+    ax_bar.tick_params(axis='y', labelsize=8.5)
 
     for line in lines:
         line.set_ydata([np.nan] * len(df['date']))
@@ -632,6 +664,14 @@ def button_press():
     
     canvas2 = FigureCanvasTkAgg(small_fig, master=opt_frms[1])
     canvas2.draw()
+
+##    for t in ax_bar.get_yticklabels():
+##        l = []
+##        try:
+##            l.append(int(t.get_text().replace('−','-')))
+##        except ValueError:
+##            l.append(int(float(t.get_text().replace('−','-'))))
+##    ax_bar.set_yticklabels(seperator(l, unit_type.get()))
     
     ax_bar.set_yticklabels(
         seperator([int(t.get_text().replace('−','-')) for t in ax_bar.get_yticklabels()],
