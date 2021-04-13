@@ -70,7 +70,7 @@ try:
             time_elapsed = now - file_mtime
 
         #Execute this block if file does not exist or file is older than 2 days
-        if not my_file.is_file() or time_elapsed > timedelta(days=2):
+        if not my_file.is_file() or time_elapsed > timedelta(hours=23):
             
             response = requests.get(url)
             response.raise_for_status()    # Check that the request was successful
