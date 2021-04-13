@@ -24,6 +24,7 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
+import traceback
 
 #Setting pandas options for debugging\output to shell 
 pd.set_option('display.max_columns', None)
@@ -52,13 +53,13 @@ try:
 
         #Creating neccessary file paths and data directory
         if platform.system() == 'Windows':
-            my_file = Path('data\\'+file)
+            my_file = Path('.\\data\\'+file)
             my_file.parent.mkdir(exist_ok=True)
-            directory = 'data\\'
+            directory = '.\\data\\'
         else:
-            my_file = Path('data/'+file)
+            my_file = Path('./data/'+file)
             my_file.parent.mkdir(exist_ok=True)
-            directory = 'data/'
+            directory = './data/'
 
         #Check if file already exists
         if my_file.is_file():
@@ -103,7 +104,9 @@ try:
         parent_df = parent_df.fillna(value={'total_cases':0, 'new_cases':0,
                                             'total_deaths':0, 'new_deaths':0,
                                             'new_tests':0, 'total_tests':0,
-                                            'tests_per_case':0, 'continent':'Global'}
+                                            'tests_per_case':0, 'positive_rate':0,
+                                            'population':0, 'population_density':0,
+                                            'continent':'Global'}
                                      )
 
         parent_df = parent_df.astype(dtype={'iso_code':'string', 'continent':'string',
@@ -188,7 +191,8 @@ try:
                                       'active':'int64',
                                       'recovered':'int64',
                                       'deaths':'int64'})
-except Exception as e:
+except Exception:
+    e = traceback.format_exc()
     print(e)
 
 else:
